@@ -4,11 +4,8 @@ import logging
 import os
 import subprocess
 import time
-import json  # הוספנו מודול לצורך הדפסות JSON debug
+import json
 from google.cloud import dialogflow_v2 as dialogflow
-from google.protobuf.json_format import MessageToDict
-
-# פונקציה לזיהוי כוונה עבור הודעות קול עם לוגים נוספים לצורך Debug
 from google.protobuf.json_format import MessageToDict
 
 def detectIntent(projectId, sessionId, text, languageCode='en'):
@@ -19,11 +16,8 @@ def detectIntent(projectId, sessionId, text, languageCode='en'):
     response = sessionClient.detect_intent(request={"session": session, "query_input": queryInput})
     response_dict = MessageToDict(response._pb, preserving_proto_field_name=True)
     query_result = response_dict.get("query_result", {})
-
     return {
-        "intent": {
-            "displayName": query_result.get("intent", {}).get("display_name", "")
-        },
+        "intent": {"displayName": query_result.get("intent", {}).get("display_name", "")},
         "parameters": query_result.get("parameters", {}),
         "fulfillmentText": query_result.get("fulfillment_text", ""),
         "fulfillmentMessages": query_result.get("fulfillment_messages", [])
@@ -31,19 +25,11 @@ def detectIntent(projectId, sessionId, text, languageCode='en'):
 
 class TelegramVoiceChannel:
     def __init__(self, token: str, s3BucketName: str = None):
-        """
-        token: Telegram Bot API token.
-        s3BucketName: S3 bucket name for uploading audio files.
-        """
         self.token = token
         self.baseUrl = f"https://api.telegram.org/bot{token}"
         self.s3BucketName = s3BucketName
 
     def getFileDownloadUrl(self, file_id: str) -> str:
-        """
-        Uses Telegram's getFile API to retrieve the file path,
-        then builds the download URL.
-        """
         url = f"{self.baseUrl}/getFile"
         response = requests.post(url, json={"file_id": file_id})
         data = response.json()
@@ -64,35 +50,94 @@ class TelegramVoiceChannel:
         logging.info("ffmpeg conversion succeeded.")
         return True
 
+    def uploadFileToS3(self, localFile: str, s3_key: str, bucket_name: str, s3_client) -> bool:
+        try:
+            s3_client.upload_file(localFile, bucket_name, s3_key)
+            logging.info(f"Uploaded {localFile} to S3 bucket {bucket_name} with key {s3_key}.")
+            return True
+        except Exception as e:
+            logging.error(f"Error uploading file to S3: {e}")
+            return False
+
+    def startTranscriptionJob(self, s3_client, transcribe_client, bucket_name: str, s3_key: str) -> (str, dict):
+        job_name = f"transcribe_{int(time.time())}"
+        logging.info(f"Starting transcription job: {job_name}")
+        transcribe_client.start_transcription_job(
+            TranscriptionJobName=job_name,
+            Media={'MediaFileUri': f"s3://{bucket_name}/{s3_key}"},
+            MediaFormat='wav',
+            LanguageCode='en-US'
+        )
+        return job_name, transcribe_client.get_transcription_job(TranscriptionJobName=job_name)
+
+    def waitForTranscription(self, transcribe_client, job_name: str) -> dict:
+        while True:
+            status = transcribe_client.get_transcription_job(TranscriptionJobName=job_name)
+            job_status = status['TranscriptionJob']['TranscriptionJobStatus']
+            logging.info(f"Transcription job {job_name} status: {job_status}")
+            if job_status in ['COMPLETED', 'FAILED']:
+                return status
+            time.sleep(5)
+
+    def getTranscribedText(self, status: dict) -> str:
+        if status['TranscriptionJob']['TranscriptionJobStatus'] == 'COMPLETED':
+            transcript_uri = status['TranscriptionJob']['Transcript']['TranscriptFileUri']
+            transcript_response = requests.get(transcript_uri)
+            transcribedText = transcript_response.json()['results']['transcripts'][0]['transcript']
+            logging.info(f"Transcribed text: {transcribedText.strip()}")
+            return transcribedText.strip()
+        else:
+            raise Exception("Transcription failed.")
+
+    def synthesizeSpeech(self, text: str, s3_client, bucket_name: str) -> (str, str):
+        polly_client = boto3.client(
+            'polly',
+            aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+            aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+            region_name=os.getenv("AWS_REGION")
+        )
+        logging.info("Synthesizing speech with Amazon Polly.")
+        polly_response = polly_client.synthesize_speech(
+            Text=text,
+            OutputFormat='mp3',
+            VoiceId='Joanna'
+        )
+        outputAudioFile = "response_audio.mp3"
+        with open(outputAudioFile, 'wb') as file:
+            file.write(polly_response['AudioStream'].read())
+        s3_key_output = "audio/response_audio.mp3"
+        if self.uploadFileToS3(outputAudioFile, s3_key_output, bucket_name, s3_client):
+            fileUrl = s3_client.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': bucket_name, 'Key': s3_key_output},
+                ExpiresIn=3600
+            )
+            logging.info(f"Uploaded response audio to S3. Presigned URL: {fileUrl}")
+            return outputAudioFile, fileUrl
+        else:
+            raise Exception("Failed to upload synthesized speech.")
+
     def processWebhook(self, requestData: dict, dialogflowHandler=None, config=None, projectId=None) -> dict:
         logging.info("Received Telegram webhook event.")
         message = requestData.get("message", {})
         chat = message.get("chat", {})
         chat_id = chat.get("id")
-        
         if "voice" in message:
             try:
-                # Extract file_id from the voice message
                 file_id = message.get("voice", {}).get("file_id")
                 logging.info(f"Processing voice message. file_id: {file_id}")
                 downloadUrl = self.getFileDownloadUrl(file_id)
                 if not downloadUrl:
                     raise Exception("Failed to get download URL for voice message.")
-
-                # Download the voice file
                 response = requests.get(downloadUrl)
                 localOggFile = "incoming_audio.ogg"
                 with open(localOggFile, "wb") as f:
                     f.write(response.content)
                 logging.info("Downloaded voice message file to local storage.")
-
-                # Convert OGG to WAV
                 localWavFile = "incoming_audio.wav"
                 if not self.convertOggToWav(localOggFile, localWavFile):
                     raise Exception("Conversion from OGG to WAV failed.")
                 logging.info("Converted OGG file to WAV format.")
-
-                # Set up AWS clients using credentials from config
                 s3_client = boto3.client(
                     's3',
                     aws_access_key_id=config["aws_access_key_id"],
@@ -105,43 +150,13 @@ class TelegramVoiceChannel:
                     aws_secret_access_key=config["aws_secret_access_key"],
                     region_name=config["aws_region"]
                 )
-
-                # Upload WAV file to S3 for transcription
                 bucket_name = config["s3BucketName"]
                 s3_key = "audio/incoming_audio.wav"
-                s3_client.upload_file(localWavFile, bucket_name, s3_key)
-                logging.info(f"Uploaded WAV file to S3 bucket {bucket_name} with key {s3_key}.")
-
-                # Start transcription job
-                job_name = f"transcribe_{int(time.time())}"
-                logging.info(f"Starting transcription job: {job_name}")
-                transcribe_client.start_transcription_job(
-                    TranscriptionJobName=job_name,
-                    Media={'MediaFileUri': f"s3://{bucket_name}/{s3_key}"},
-                    MediaFormat='wav',
-                    LanguageCode='en-US'
-                )
-
-                # Poll until transcription job completes
-                while True:
-                    status = transcribe_client.get_transcription_job(TranscriptionJobName=job_name)
-                    job_status = status['TranscriptionJob']['TranscriptionJobStatus']
-                    logging.info(f"Transcription job {job_name} status: {job_status}")
-                    if job_status in ['COMPLETED', 'FAILED']:
-                        break
-                    time.sleep(5)
-
-                if job_status == 'COMPLETED':
-                    transcript_uri = status['TranscriptionJob']['Transcript']['TranscriptFileUri']
-                    transcript_response = requests.get(transcript_uri)
-                    transcribedText = transcript_response.json()['results']['transcripts'][0]['transcript']
-                    # ניקוי הטקסט – במידת הצורך
-                    transcribedText = transcribedText.strip()
-                    logging.info(f"Transcribed text: {transcribedText}")
-                else:
-                    raise Exception("Transcription failed.")
-
-                # שליחת הטקסט ל־Dialogflow לזיהוי כוונה
+                if not self.uploadFileToS3(localWavFile, s3_key, bucket_name, s3_client):
+                    raise Exception("Failed to upload WAV file to S3.")
+                job_name, _ = self.startTranscriptionJob(s3_client, transcribe_client, bucket_name, s3_key)
+                status = self.waitForTranscription(transcribe_client, job_name)
+                transcribedText = self.getTranscribedText(status)
                 if dialogflowHandler is not None and projectId:
                     logging.info("Sending transcribed text to Dialogflow for intent detection.")
                     queryResult = detectIntent(projectId, str(chat_id), transcribedText)
@@ -154,47 +169,15 @@ class TelegramVoiceChannel:
                 else:
                     responseText = "You said: " + transcribedText
                 logging.info(f"Final response text to be synthesized: {responseText}")
-
-                # Synthesize speech using Amazon Polly
-                polly_client = boto3.client(
-                    'polly',
-                    aws_access_key_id=config["aws_access_key_id"],
-                    aws_secret_access_key=config["aws_secret_access_key"],
-                    region_name=config["aws_region"]
-                )
-                logging.info("Synthesizing speech with Amazon Polly.")
-                polly_response = polly_client.synthesize_speech(
-                    Text=responseText,
-                    OutputFormat='mp3',
-                    VoiceId='Joanna'
-                )
-                outputAudioFile = "response_audio.mp3"
-                with open(outputAudioFile, 'wb') as file:
-                    file.write(polly_response['AudioStream'].read())
-                logging.info("Synthesized audio saved locally.")
-
-                # Upload synthesized audio to S3 and generate presigned URL
-                s3_key_output = "audio/response_audio.mp3"
-                s3_client.upload_file(outputAudioFile, bucket_name, s3_key_output)
-                fileUrl = s3_client.generate_presigned_url(
-                    'get_object',
-                    Params={'Bucket': bucket_name, 'Key': s3_key_output},
-                    ExpiresIn=3600
-                )
-                logging.info(f"Uploaded response audio to S3. Presigned URL: {fileUrl}")
-
-                # Send audio back to Telegram using sendAudio
+                _, fileUrl = self.synthesizeSpeech(responseText, s3_client, bucket_name)
                 send_url = f"{self.baseUrl}/sendAudio"
                 data = {"chat_id": chat_id, "audio": fileUrl}
                 requests.post(send_url, data=data)
                 logging.info("Sent audio response to Telegram.")
-
-                # Clean up temporary files
                 os.remove(localOggFile)
                 os.remove(localWavFile)
-                os.remove(outputAudioFile)
+                os.remove("response_audio.mp3")
                 logging.info("Cleaned up temporary audio files.")
-
                 return {"status": 0}
             except Exception as e:
                 logging.error(f"Error processing voice message: {e}")
