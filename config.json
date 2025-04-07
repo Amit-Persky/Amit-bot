@@ -6,6 +6,7 @@
     "aws_access_key_id": "YOUR_AWS_ACCESS_KEY_ID",
     "aws_secret_access_key": "YOUR_AWS_SECRET_ACCESS_KEY",
     "aws_region": "YOUR_AWS_REGION",
-    "dialogflowProjectId": "YOUR_DIALOGFLOW_PROJECT_ID"
+    "dialogflowProjectId": "YOUR_DIALOGFLOW_PROJECT_ID",
+    "googlePlacesApiKey": "YOUR_GOOGLE_PLACES_API_KEY"
 }
   
