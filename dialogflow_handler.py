@@ -8,10 +8,11 @@ logging.basicConfig(
 )
 
 class DialogflowHandler:
-    def __init__(self, telegramBot, weatherService, euroleagueService):
+    def __init__(self, telegramBot, weatherService, euroleagueService, placesApiService):
         self.telegramBot = telegramBot
         self.weatherService = weatherService
         self.euroleagueService = euroleagueService
+        self.placesApiService = placesApiService
         logging.info("DialogflowHandler initialized.")
 
     def processRequest(self, requestJson: dict) -> dict:
@@ -34,6 +35,8 @@ class DialogflowHandler:
             return self.handleEuroleagueIntent(queryResult, parameters)
         elif intentDisplayName == "GetWeather":
             return self.handleWeatherIntent(queryResult, parameters)
+        elif intentDisplayName == "GetPlaces":
+            return self.handlePlacesIntent(queryResult, parameters)
         elif intentDisplayName == "DefaultWelcomeIntent":
             # For the welcome intent, try to extract the Telegram payload
             fulfillmentMessages = queryResult.get("fulfillmentMessages", [])
@@ -147,4 +150,26 @@ class DialogflowHandler:
         return {
             "fulfillmentText": weatherInfo,
             "fulfillmentMessages": [{"text": {"text": [weatherInfo]}}]
+        }
+    
+    def handlePlacesIntent(self, queryResult: dict, parameters: dict) -> dict:
+        placeType = parameters.get("place-type")
+        city = parameters.get("geo-city")
+
+        if not placeType or not city:
+            infoMsg = (
+                "Please provide a city and a place type, like 'restaurants in Rome' "
+                "or 'parks in Tel Aviv'."
+            )
+            logging.info(infoMsg)
+            return {
+                "fulfillmentText": infoMsg,
+                "fulfillmentMessages": [{"text": {"text": [infoMsg]}}]
+            }
+
+        placesResult = self.placesApiService.GetPlaces(placeType, city)
+        logging.info("Returning Places API results.")
+        return {
+            "fulfillmentText": placesResult,
+            "fulfillmentMessages": [{"text": {"text": [placesResult]}}]
         }
