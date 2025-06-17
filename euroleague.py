@@ -107,6 +107,7 @@ class EuroleagueService:
                 f"Date: {dateStr} at {startTime}\n{homeTeam} vs {awayTeam}")
 
     def getNextGame(self, seasonCode: str, teamName: str) -> str:
+        # Return the next scheduled game for a given team in a season.
         logging.info(f"Fetching next game for team: {teamName} in season: {seasonCode}")
         params = {"seasonCode": seasonCode}
         headers = {"accept": "application/xml"}
@@ -118,20 +119,7 @@ class EuroleagueService:
             items = root.findall(".//item")
             if not items:
                 return f"No schedule items found for season {seasonCode}."
-            now = datetime.now()
-            teamLower = teamName.lower()
-            nextGames = []
-            for item in items:
-                hometeam = item.find("hometeam").text if item.find("hometeam") is not None else ""
-                awayteam = item.find("awayteam").text if item.find("awayteam") is not None else ""
-                if teamLower not in (hometeam.lower() + " " + awayteam.lower()):
-                    continue
-                result = self.extractGameDatetime(item)
-                if result is None:
-                    continue
-                dt, validItem = result
-                if dt >= now:
-                    nextGames.append((dt, validItem))
+            nextGames = self.filterUpcomingGames(items, teamName)
             if not nextGames:
                 return f"No upcoming games found for {teamName} in season {seasonCode}."
             nextGames.sort(key=lambda x: x[0])
@@ -140,16 +128,8 @@ class EuroleagueService:
             logging.error(f"Error processing next game: {e}")
             return f"Error processing next game: {str(e)}"
 
-    def formatNextGameFormatted(self, item: dict, teamName: str) -> str:
-        dateStr = item.get("date", "N/A")
-        startTime = item.get("startime", "N/A")
-        homeTeam = item.get("hometeam", "N/A")
-        awayTeam = item.get("awayteam", "N/A")
-        arena = item.get("arenaname", "N/A")
-        return (f"Next game for {teamName}:\nArena: {arena}\n"
-                f"Date: {dateStr} at {startTime}\n{homeTeam} vs {awayTeam}")
-
     def getNextGameFormatted(self, seasonCode: str, teamName: str) -> str:
+        # Return the next scheduled game for a team, formatted with details.
         logging.info(f"Fetching next game formatted for team: {teamName} in season: {seasonCode}")
         params = {"seasonCode": seasonCode}
         headers = {"accept": "application/xml"}
@@ -160,17 +140,7 @@ class EuroleagueService:
             items = self.parseScheduleXml(response.text)
             if not items:
                 return f"No schedule items found for season {seasonCode}."
-            now = datetime.now()
-            teamLower = teamName.lower()
-            nextGames = []
-            for item in items:
-                if teamLower not in (item.get("hometeam", "").lower() + " " + item.get("awayteam", "").lower()):
-                    continue
-                if "datetime_obj" not in item:
-                    continue
-                dt = item["datetime_obj"]
-                if dt >= now:
-                    nextGames.append((dt, item))
+            nextGames = self.filterUpcomingGamesDict(items, teamName)
             if not nextGames:
                 return f"No upcoming games found for {teamName} in season {seasonCode}."
             nextGames.sort(key=lambda x: x[0])
@@ -178,6 +148,79 @@ class EuroleagueService:
         except Exception as e:
             logging.error(f"Error processing next game formatted: {e}")
             return f"Error processing next game: {str(e)}"
+
+    def getSeasonResults(self, seasonCode: str, teamName: str) -> str:
+        # Return all games for a team in a season, sorted by date.
+        logging.info(f"Fetching season results for team: {teamName} in season: {seasonCode}")
+        params = {"seasonCode": seasonCode}
+        headers = {"accept": "application/xml"}
+        response = requests.get(self.baseUrlResults, params=params, headers=headers)
+        if response.status_code != 200:
+            return f"Failed to fetch results. Status code: {response.status_code}"
+        try:
+            root = ET.fromstring(response.text)
+            gamesList = self.collectTeamGames(root, teamName)
+            if not gamesList:
+                return f"No games found for {teamName} in season {seasonCode}."
+            gamesList.sort(key=lambda x: x[0])
+            return "\n".join([line for _, line in gamesList])
+        except Exception as e:
+            logging.error(f"Error processing season results: {e}")
+            return f"Error processing season results: {str(e)}"
+
+    def formatNextGameFormatted(self, item: dict, teamName: str) -> str:
+        dateStr = item.get("date", "N/A")
+        startTime = item.get("startime", "N/A")
+        homeTeam = item.get("hometeam", "N/A")
+        awayTeam = item.get("awayteam", "N/A")
+        arena = item.get("arenaname", "N/A")
+        return (f"Next game for {teamName}:\nArena: {arena}\n"
+                f"Date: {dateStr} at {startTime}\n{homeTeam} vs {awayTeam}")
+
+    def filterUpcomingGames(self, items, teamName):
+        """Filter and return upcoming games for the given team from XML items."""
+        now = datetime.now()
+        teamLower = teamName.lower()
+        nextGames = []
+        for item in items:
+            hometeam = item.find("hometeam").text if item.find("hometeam") is not None else ""
+            awayteam = item.find("awayteam").text if item.find("awayteam") is not None else ""
+            if teamLower not in (hometeam.lower() + " " + awayteam.lower()):
+                continue
+            result = self.extractGameDatetime(item)
+            if result is None:
+                continue
+            dt, validItem = result
+            if dt >= now:
+                nextGames.append((dt, validItem))
+        return nextGames
+
+    def filterUpcomingGamesDict(self, items, teamName):
+        """Filter and return upcoming games for the given team from parsed dict items."""
+        now = datetime.now()
+        teamLower = teamName.lower()
+        nextGames = []
+        for item in items:
+            if teamLower not in (item.get("hometeam", "").lower() + " " + item.get("awayteam", "").lower()):
+                continue
+            if "datetime_obj" not in item:
+                continue
+            dt = item["datetime_obj"]
+            if dt >= now:
+                nextGames.append((dt, item))
+        return nextGames
+
+    def collectTeamGames(self, root, teamName):
+        # Collect and return all games for a team from XML root.
+        gamesList = []
+        teamLower = teamName.lower()
+        for game in root.findall(".//game"):
+            ht = game.find("hometeam").text if game.find("hometeam") is not None else ""
+            at = game.find("awayteam").text if game.find("awayteam") is not None else ""
+            if teamLower in (ht.lower() + " " + at.lower()):
+                dt, line = self.formatSeasonGame(game)
+                gamesList.append((dt, line))
+        return gamesList
 
     def formatSeasonGame(self, game: ET.Element) -> (datetime, str):
         homeTeam = game.find("hometeam").text if game.find("hometeam") is not None else ""

@@ -1,5 +1,8 @@
-from fastapi import FastAPI, Request, BackgroundTasks, Query
+from fastapi import FastAPI, Request, BackgroundTasks, Query, Body
 from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import RedirectResponse
+from pydantic import BaseModel, Field
+from typing import Union
 import logging
 import json
 from telegram_bot import TelegramBot
@@ -17,16 +20,64 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()]
 )
 
+# --- Pydantic Response Models ---
+class WeatherResponse(BaseModel):
+    city: str = Field(..., description="City name")
+    forecast: str = Field(None, description="Forecast type")
+    result: str = Field(..., description="Weather result data")
+
+class EuroleagueResponse(BaseModel):
+    team: str = Field(..., description="Team name")
+    season: str = Field(..., description="Season code")
+    query: str = Field(..., description="Query type")
+    result: str = Field(..., description="Euroleague result")
+
+class PlaceItem(BaseModel):
+    name: str = Field(..., description="Place name")
+    address: str = Field(..., description="Address")
+    rating: str = Field(..., description="Rating")
+
+class PlacesResponse(BaseModel):
+    city: str = Field(..., description="City name")
+    place_type: str = Field(..., description="Type of place")
+    results: list[PlaceItem] = Field(..., description="List of places")
+
+class SimpleResult(BaseModel):
+    result: Union[str, dict]
+
 def loadConfig() -> dict:
     with open("config.json", "r") as configFile:
         return json.load(configFile)
 
-config = loadConfig()
-TELEGRAM_TOKEN = config.get("TELEGRAM_TOKEN")
-OPENWEATHERMAP_API_KEY = config.get("OPENWEATHERMAP_API_KEY")
-GOOGLE_PLACES_API_KEY = config.get("GOOGLE_PLACES_API_KEY")
-S3_BUCKET_NAME = config.get("S3_BUCKET_NAME")
-PROJECT_ID = config.get("DIALOGFLOW_PROJECT_ID", "your-dialogflow-project-id")
+CONFIG = loadConfig()
+TELEGRAM_TOKEN = CONFIG.get("TELEGRAM_TOKEN")
+OPENWEATHERMAP_API_KEY = CONFIG.get("OPENWEATHERMAP_API_KEY")
+GOOGLE_PLACES_API_KEY = CONFIG.get("GOOGLE_PLACES_API_KEY")
+S3_BUCKET_NAME = CONFIG.get("S3_BUCKET_NAME")
+PROJECT_ID = CONFIG.get("DIALOGFLOW_PROJECT_ID", "your-dialogflow-project-id")
+
+TELEGRAM_BOT = TelegramBot(TELEGRAM_TOKEN)
+WEATHER_SERVICE = WeatherService(OPENWEATHERMAP_API_KEY)
+EUROLEAGUE_SERVICE = EuroleagueService()
+PLACES_API_SERVICE = PlacesApiService(GOOGLE_PLACES_API_KEY)
+DIALOGFLOW_HANDLER = DialogflowHandler(TELEGRAM_BOT, WEATHER_SERVICE, EUROLEAGUE_SERVICE, PLACES_API_SERVICE)
+TELEGRAM_VOICE_CHANNEL = TelegramVoiceChannel(TELEGRAM_TOKEN, S3_BUCKET_NAME)
+
+app = FastAPI(
+    title="Euroleague Traveler Bot API",
+    version="2.0.0",
+    description=(
+        "A world-class API for weather, Euroleague basketball results, and places recommendations.\n\n"
+        "Handles Telegram and Dialogflow webhooks, and provides easy-to-use test endpoints for all core services.\n\n"
+        "Built with FastAPI. Explore, test, and integrate!"
+    ),
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+
+@app.get("/", include_in_schema=False)
+def root_redirect():
+    return RedirectResponse(url="/docs")
 
 def detectIntent(projectId, sessionId, text, languageCode='en'):
     sessionClient = dialogflow.SessionsClient()
@@ -48,79 +99,65 @@ def detectIntent(projectId, sessionId, text, languageCode='en'):
         "fulfillmentMessages": query_result.get("fulfillment_messages", [])
     }
 
-telegramBot = TelegramBot(TELEGRAM_TOKEN)
-weatherService = WeatherService(OPENWEATHERMAP_API_KEY)
-euroleagueService = EuroleagueService()
-placesApiService = PlacesApiService(GOOGLE_PLACES_API_KEY)
-dialogflowHandler = DialogflowHandler(telegramBot, weatherService, euroleagueService, placesApiService)
-telegramVoiceChannel = TelegramVoiceChannel(TELEGRAM_TOKEN, S3_BUCKET_NAME)
-
-app = FastAPI(
-    title="Dialogflow Webhook with Telegram Integration",
-    version="1.1.0",
-    description=(
-        "API for handling Webhook requests from Telegram and integrating with Dialogflow.\n\n"
-        "This tool works with 3 intents: GetEuroleague, GetWeather, and GetPlaces.\n\n"
-        "Additionally, you can test the Weather, Euroleague and Places services via dedicated endpoints with JSON examples."
-    )
-)
-
-@app.get("/docs", include_in_schema=False)
-async def customSwaggerUiHtml():
-    return get_swagger_ui_html(
-        openapi_url=app.openapi_url,
-        title=app.title + " - Swagger UI",
-        swagger_js_url="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-bundle.js",
-        swagger_css_url="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.css",
-    )
-
-@app.get("/", summary="Welcome", description="Home screen with a basic message. Visit /docs for Swagger UI.")
-def readRoot():
-    return {"message": "Welcome to the Webhook API. Visit /docs for Swagger UI."}
-
 def processCallbackQuery(requestJson: dict) -> dict:
     callback = requestJson["callback_query"]
     chatId = callback["message"]["chat"]["id"]
     data = callback.get("data", "")
     logging.info(f"Processing callback query with data: {data}")
     if data == "/weather":
-        telegramBot.sendMessage(chatId, "Please provide the city name so I can fetch the weather details.")
+        TELEGRAM_BOT.sendMessage(chatId, "Please provide the city name for weather details.")
     elif data == "/euroleague":
-        telegramBot.sendMessage(chatId, "Please provide the team name for Euroleague details.")
+        TELEGRAM_BOT.sendMessage(chatId, "Please provide the team name for Euroleague details.")
     elif data == "/places":
-        telegramBot.sendMessage(chatId, "Please provide the type of place and city for recommendations.")
+        TELEGRAM_BOT.sendMessage(chatId, "Please provide the type of place and city for recommendations.")
     else:
         return {"status": "no content"}
     return {"status": "ok"}
 
 def processDialogflowRequest(requestJson: dict) -> dict:
-    logging.info("Processing Dialogflow webhook fulfillment request.")
+    logging.info("Processing Dialogflow webhook request.")
     queryResult = requestJson.get("queryResult", {})
     if not queryResult or not queryResult.get("intent", {}).get("display_name"):
-        logging.info("Empty queryResult or missing intent detected. Ignoring duplicate fulfillment request.")
+        logging.info("Empty queryResult or missing intent. Ignoring request.")
         return {"status": "ok"}
-    return dialogflowHandler.processRequest(requestJson)
+    return DIALOGFLOW_HANDLER.processRequest(requestJson)
 
 def processTelegramText(message: dict, chatId) -> dict:
     text = message.get("text", "")
     queryResult = detectIntent(PROJECT_ID, str(chatId), text)
     logging.info("detectIntent result: %s", json.dumps(queryResult, indent=2))
-    responsePayload = dialogflowHandler.processRequest({"queryResult": queryResult})
-    reply_markup = None
+    responsePayload = DIALOGFLOW_HANDLER.processRequest({"queryResult": queryResult})
+    replyMarkup = None
     for msg in responsePayload.get("fulfillmentMessages", []):
         if "payload" in msg and "telegram" in msg["payload"]:
-            telegramPayload = msg["payload"]["telegram"]
-            reply_markup = telegramPayload.get("reply_markup")
+            replyMarkup = msg["payload"]["telegram"].get("reply_markup")
             break
     fulfillmentText = responsePayload.get("fulfillmentText", "I'm sorry, I didn't understand that request.")
-    telegramBot.sendMessage(chatId, fulfillmentText, reply_markup=reply_markup)
+    TELEGRAM_BOT.sendMessage(chatId, fulfillmentText, reply_markup=replyMarkup)
     return {"status": "ok"}
 
-@app.post("/amit-bot", summary="Webhook for Telegram/ Dialogflow requests", description="Main endpoint for receiving Telegram updates and Dialogflow requests.")
-async def amitBotWebhook(request: Request, background_tasks: BackgroundTasks):
+
+# Example payload for /amit-bot endpoint (used in Swagger UI)
+amit_bot_example = {
+    "message": {
+        "chat": {"id": 123456789},
+        "text": "Hello, what is the weather in Tel Aviv?"
+    }
+}
+
+@app.post(
+    "/amit-bot",
+    summary="Webhook for Telegram/ Dialogflow requests",
+    description="Main endpoint for receiving Telegram updates and Dialogflow requests.",
+    response_model=dict,
+)
+async def amitBotWebhook(
+    payload: dict = Body(..., example=amit_bot_example),
+    background_tasks: BackgroundTasks = None
+):
     try:
         logging.info("Received a new webhook request.")
-        requestJson = await request.json()
+        requestJson = payload
         logging.info(f"Incoming JSON: {json.dumps(requestJson, indent=2)}")
         if "callback_query" in requestJson:
             return processCallbackQuery(requestJson)
@@ -130,49 +167,86 @@ async def amitBotWebhook(request: Request, background_tasks: BackgroundTasks):
         chat = message.get("chat", {})
         chatId = chat.get("id")
         if "voice" in message or "audio" in message:
-            logging.info("Detected voice message. Sending immediate acknowledgment.")
-            telegramBot.sendMessage(chatId, "We are processing your request, please wait...")
-            background_tasks.add_task(
-                telegramVoiceChannel.processWebhook, 
-                requestJson, dialogflowHandler, config, PROJECT_ID
-            )
-            return {"status": "ok"}
+            return handleVoiceMessage(message, chatId, requestJson, background_tasks)
         elif "text" in message:
-            return processTelegramText(message, chatId)
-        else:
-            logging.info("No text or voice in message.")
-            return {"status": "no content"}
+            return handleTextMessage(message, chatId)
+        logging.info("No text or voice in message.")
+        return {"status": "no content"}
     except Exception as e:
         logging.exception("Error processing webhook")
         return {"error": str(e)}
 
-@app.get("/test/weather", summary="Weather Service Test", response_model=dict)
+def handleVoiceMessage(message: dict, chatId, requestJson, backgroundTasks):
+    logging.info("Detected voice message. Sending acknowledgment.")
+    TELEGRAM_BOT.sendMessage(chatId, "We are processing your request, please wait...")
+    backgroundTasks.add_task(
+        TELEGRAM_VOICE_CHANNEL.processWebhook,
+        requestJson, DIALOGFLOW_HANDLER, CONFIG, PROJECT_ID
+    )
+    return {"status": "ok"}
+
+def handleTextMessage(message: dict, chatId):
+    return processTelegramText(message, chatId)
+
+@app.get(
+    "/test/weather",
+    summary="Weather Service Test",
+    description="Test the weather service for a given city and forecast type.",
+    response_model=WeatherResponse,
+    tags=["Weather"]
+)
 def testWeather(
     city: str = Query(..., description="City name for testing", example="Tel Aviv"),
-    forecast: str = Query(None, description="Forecast type (e.g., hourly, tomorrow, in 3 days)", example="hourly")
+    forecast: str = Query(None, description="Forecast type (e.g., hourly, tomorrow, in 3 days)", example="in 3 days")
 ):
-    result = weatherService.getWeatherData(city, forecast)
-    return {"result": result}
+    result = WEATHER_SERVICE.getWeatherData(city, forecast)
+    return WeatherResponse(city=city, forecast=forecast, result=result)
 
-@app.get("/test/euroleague", summary="Euroleague Service Test", response_model=dict)
+@app.get(
+    "/test/euroleague",
+    summary="Euroleague Service Test",
+    description="Test the Euroleague service for a given team, season, and query type (last/next/all games).",
+    response_model=EuroleagueResponse,
+    tags=["Euroleague"]
+)
 def testEuroleague(
     team: str = Query(..., description="Team name", example="Barcelona"),
     season: str = Query("E2024", description="Season code (default: E2024)", example="E2024"),
     query: str = Query("last", description="Query type: last/next/other", example="last")
 ):
-    query_lower = query.lower()
-    if query_lower in ["last", "latest", "previous", "past"]:
-        result = euroleagueService.getLastGameResult(season, team)
-    elif query_lower in ["next", "upcoming", "following"]:
-        result = euroleagueService.getNextGameFormatted(season, team)
+    queryLower = query.lower()
+    if queryLower in ["last", "latest", "previous", "past"]:
+        result = EUROLEAGUE_SERVICE.getLastGameResult(season, team)
+    elif queryLower in ["next", "upcoming", "following"]:
+        result = EUROLEAGUE_SERVICE.getNextGameFormatted(season, team)
     else:
-        result = euroleagueService.getSeasonResults(season, team)
-    return {"result": result}
+        result = EUROLEAGUE_SERVICE.getSeasonResults(season, team)
+    return EuroleagueResponse(team=team, season=season, query=query, result=result)
 
-@app.get("/test/places", summary="Places Service Test", response_model=dict)
+@app.get(
+    "/test/places",
+    summary="Places Service Test",
+    description="Test the places service for a given city and type of place. Returns a list of recommended places.",
+    response_model=PlacesResponse,
+    tags=["Places"]
+)
 def testPlaces(
     city: str = Query(..., description="City name for testing", example="Paris"),
     place_type: str = Query(..., description="Type of place (e.g., restaurants, parks, museums)", example="restaurants")
 ):
-    result = placesApiService.getPlaces(place_type, city)
-    return {"result": result}
+    places_result = PLACES_API_SERVICE.getPlaces(place_type, city)
+    # Parse the string result into structured data for Swagger (best effort)
+    items = []
+    if isinstance(places_result, str):
+        lines = places_result.split("\n")[1:]
+        for line in lines:
+            if not line.strip():
+                continue
+            parts = line.split(" - ")
+            if len(parts) == 2:
+                name = parts[0].strip()
+                rest = parts[1]
+                addr, _, rating_part = rest.partition(" (Rating: ")
+                rating = rating_part.replace(")", "").strip() if rating_part else "N/A"
+                items.append(PlaceItem(name=name, address=addr.strip(), rating=rating))
+    return PlacesResponse(city=city, place_type=place_type, results=items)

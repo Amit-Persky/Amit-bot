@@ -1,4 +1,3 @@
-# viber_bot/s3_uploader.py
 import boto3
 import os
 import logging
@@ -6,9 +5,7 @@ import logging
 class S3Uploader:
     @staticmethod
     def uploadFileToS3(filePath: str, bucketName: str, objectName: str = None) -> str:
-        """
-        Uploads the file to S3 and returns a pre-signed URL valid for 1 hour.
-        """
+        # Uploads the file to S3 and returns a pre-signed URL valid for 1 hour.
         if objectName is None:
             objectName = os.path.basename(filePath)
         try:
