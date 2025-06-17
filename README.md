@@ -11,7 +11,7 @@
 ## 🎬 Demo (GIF)
 
 <p align="center">
-  <img src="media/demo.gif" width="480" alt="Animated demo">
+  <img src="media/demo.gif" width="300" alt="Animated demo">
 </p>
 
 
