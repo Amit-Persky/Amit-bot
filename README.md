@@ -8,6 +8,17 @@
 
 ---
 
+## 🎬 Demo
+
+<p align="center">
+  <video width="600" controls>
+    <source src="media/demo.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+</p>
+
+---
+
 ## ✨ Key Features
 - **Euroleague Results** – last / next game, or full-season summary for any team  
 - **Weather** – current, hourly, tomorrow, or multi-day forecasts for any city  
