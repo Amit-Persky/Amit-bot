@@ -107,7 +107,7 @@ pytest
 ## 📜 License & Author
 Released as open-source – feel free to fork, modify, and deploy!  
 
-**Author:** [your_name] (GitHub [@your_github_username])
+**Author:** Amit (GitHub [@Amit-Persky](https://github.com/Amit-Persky))
 
 ---
 
