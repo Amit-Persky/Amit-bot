@@ -11,9 +11,13 @@
 ## 🎬 Demo
 
 <p align="center">
-  <video width="600" controls>
-    <source src="media/demo.mp4" type="video/mp4">
+  <video width="480" controls>
+    <source
+      src="https://raw.githubusercontent.com/Amit-Persky/Amit-bot/main/media/demo.mp4"
+      type="video/mp4">
     Your browser does not support the video tag.
+    <br>
+    <a href="media/demo.mp4">Download the demo</a>
   </video>
 </p>
 
