@@ -3,7 +3,7 @@
 > A Telegram chatbot that combines **Euroleague basketball results**, **weather forecasts**, and **travel tips** (restaurants, parks, museums) – with both text **and voice** support.
 
 <p align="center">
-  <img src="images/banner.png" alt="Bot banner" width="320">
+  <img src="media/images/banner.png" alt="Bot banner" width="320">
 </p>
 
 ---
@@ -28,7 +28,7 @@
 
 ## 🏗️ Architecture
 <p align="center">
-  <img src="images/architecture_diagram.png" alt="Architecture overview" width="680">
+  <img src="media/images/architecture_diagram.png" alt="Architecture overview" width="680">
 </p>
 
 1. Telegram ⟶ **FastAPI** (Docker) – handles webhook  
