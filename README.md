@@ -3,7 +3,7 @@
 > A Telegram chatbot that combines **Euroleague basketball results**, **weather forecasts**, and **travel tips** (restaurants, parks, museums) – with both text **and voice** support.
 
 <p align="center">
-  <img src="media/images/banner.png" alt="Bot banner" width="320">
+  <img src="https://raw.githubusercontent.com/Amit-Persky/Amit-bot/media-only/media/images/banner.png" alt="Bot banner" width="320">
 </p>
 
 ---
@@ -11,7 +11,7 @@
 ## 🎬 Demo (GIF)
 
 <p align="center">
-  <img src="media/demo.gif" width="300" alt="Animated demo">
+  <img src="https://raw.githubusercontent.com/Amit-Persky/Amit-bot/media-only/media/demo.gif" width="300" alt="Animated demo">
 </p>
 
 
@@ -28,7 +28,7 @@
 
 ## 🏗️ Architecture
 <p align="center">
-  <img src="media/images/architecture_diagram.png" alt="Architecture overview" width="680">
+  <img src="https://raw.githubusercontent.com/Amit-Persky/Amit-bot/media-only/media/images/architecture_diagram.png" alt="Architecture overview" width="680">
 </p>
 
 1. Telegram ⟶ **FastAPI** (Docker) – handles webhook  
