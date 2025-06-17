@@ -3,7 +3,7 @@
 > A Telegram chatbot that combines **Euroleague basketball results**, **weather forecasts**, and **travel tips** (restaurants, parks, museums) – with both text **and voice** support.
 
 <p align="center">
-  <img src="images/banner.png" alt="Bot banner" width="620">
+  <img src="images/banner.png" alt="Bot banner" width="320">
 </p>
 
 ---
