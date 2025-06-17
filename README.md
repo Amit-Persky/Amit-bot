@@ -8,16 +8,12 @@
 
 ---
 
-## 🎬 Demo
+## 🎬 Demo (GIF)
 
 <p align="center">
-  <video width="480" controls>
-    <source src="media/demo.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
-  <br>
-  <a href="media/demo.mp4">⬇️ Download the demo (mp4)</a>
+  <img src="media/demo.gif" width="480" alt="Animated demo">
 </p>
+
 
 ---
 
