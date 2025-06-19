@@ -185,10 +185,6 @@ pip install -r requirements.txt
 pytest -q
 ```
 
----
-
-## 🤝 Contributing
-PRs & issues are welcome! Please follow the existing style conventions (PascalCase for functions, ≤20 lines per function, English comments).
 
 ---
 
