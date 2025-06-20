@@ -9,7 +9,7 @@ A Telegram bot that blends live Euroleague basketball data, hyper‑local weathe
 
 [![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)](https://www.python.org/) 
 [![Docker](https://img.shields.io/badge/Docker-ready-blue?logo=docker)](https://docs.docker.com/) 
-[![License](https://img.shields.io/github/license/Amit-Persky/Amit-bot)](#-license--author)
+[![License](https://img.shields.io/github/license/Amit-Persky/Amit-bot)](#license-author)
 
 ---
 
@@ -28,6 +28,7 @@ A Telegram bot that blends live Euroleague basketball data, hyper‑local weathe
 
 
 ## 🎬 Demo
+<a id="demo"></a>
 <p align="center">
   <img src="https://raw.githubusercontent.com/Amit-Persky/Amit-bot/media-only/media/demo.gif" width="320" alt="Animated demo">
 </p>
@@ -73,6 +74,7 @@ nano config.local.json
 # 4) Run
 uvicorn main:app --reload           # http://127.0.0.1:8000/docs
 ```
+> **Note:** the flags keep the clone tiny by skipping full history and the media branch.
 
 ---
 
@@ -197,6 +199,7 @@ pytest -q
 ---
 
 ## 📜 License & Author
+<a id="license-author"></a>
 Released under the MIT License.  
 
 **Author:** Amit Persky – GitHub [@Amit-Persky](https://github.com/Amit-Persky)
