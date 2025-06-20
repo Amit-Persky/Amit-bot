@@ -58,9 +58,9 @@ A Telegram bot that blends live Euroleague basketball data, hyper‑local weathe
 
 ## ⚡ Quick Start (Local)
 ```bash
-# 1) Clone
-git clone https://github.com/<YOUR-GH-USER>/<REPO>.git
-cd <REPO>
+# 1) Clone a lightweight copy (main branch, last commit only)
+git clone --depth 1 --single-branch https://github.com/Amit-Persky/Amit-bot.git
+cd Amit-bot
 
 # 2) Create virtual‑env & install deps
 python -m venv .venv && source .venv/bin/activate
