@@ -1,4 +1,4 @@
-# Euroleague Traveler Bot
+# EuroLeague Traveler Bot
 
 **Plan your EuroLeague trip in one chat.**  
 A Telegram bot that blends live Euroleague basketball data, hyper‑local weather forecasts and Google Places travel tips – with both **text and voice** commands.
@@ -23,9 +23,8 @@ A Telegram bot that blends live Euroleague basketball data, hyper‑local weathe
 7. [Usage Examples](#-usage-examples)
 8. [API Reference](#-api-reference-swagger)
 9. [Testing](#-running-tests)
-10. [Contributing](#-contributing)
-11. [License & Author](#-license--author)
-12. [Credits](#-credits)
+10. [License & Author](#-license--author)
+11. [Credits](#-credits)
 
 ## 🎬 Demo
 <p align="center">
@@ -61,6 +60,7 @@ A Telegram bot that blends live Euroleague basketball data, hyper‑local weathe
 # 1) Clone a lightweight copy (main branch, last commit only)
 git clone --depth 1 --single-branch https://github.com/Amit-Persky/Amit-bot.git
 cd Amit-bot
+> **Note:** the flags keep the clone small by skipping full history and the media branch.
 
 # 2) Create virtual‑env & install deps
 python -m venv .venv && source .venv/bin/activate
@@ -94,16 +94,24 @@ sudo service docker start
 sudo usermod -aG docker ec2-user   # logout/login once
 ```
 
-### 2. Clone & Build image
+### 2. Clone & Build image
 ```bash
-git clone https://github.com/<YOUR-GH-USER>/<REPO>.git && cd <REPO>
-cp config.json config.production.json   # fill in all real secrets!
+# shallow clone – main branch only, latest commit
+git clone --depth 1 --single-branch https://github.com/<YOUR-GH-USER>/<REPO>.git
+cd <REPO>
+# (remove --depth 1 --single-branch if you need the full history or additional branches)
+
+# copy production config and add real secrets
+cp config.json config.production.json   # edit this file!
+
+# build & run container
 sudo docker build -t euroleague-bot .
 sudo docker run -d --restart=always --name euroleague-bot \
   -p 8000:8000 \
   -v $(pwd)/config.production.json:/app/config.json:ro \
   euroleague-bot
 ```
+
 
 ### 3. (Optional) Nginx reverse‑proxy with HTTPS
 ```bash
