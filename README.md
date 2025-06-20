@@ -13,18 +13,19 @@ A Telegram bot that blends live Euroleague basketball data, hyper‑local weathe
 
 ---
 
-## 📑 Table of Contents
-1. [Demo](#-demo)
-2. [Key Features](#-key-features)
-3. [Architecture](#-architecture)
-4. [Quick Start (Local)](#-quick-start-local)
-5. [Production Deployment (AWS)](#-production-deployment-aws)
+## 📑 Table of Contents
+1. [Demo](#demo)
+2. [Key Features](#key-features)
+3. [Architecture](#architecture)
+4. [Quick Start (Local)](#quick-start-local)
+5. [Production Deployment (AWS)](#production-deployment-aws)
 6. [Configuration](#configuration)
-7. [Usage Examples](#-usage-examples)
-8. [API Reference](#-api-reference-swagger)
-9. [Testing](#-running-tests)
-10. [License & Author](#-license--author)
-11. [Credits](#-credits)
+7. [Usage Examples](#usage-examples)
+8. [API Reference](#api-reference-swagger)
+9. [Testing](#running-tests)
+10. [License & Author](#license-author)
+11. [Credits](#credits)
+
 
 ## 🎬 Demo
 <p align="center">
