@@ -29,6 +29,7 @@ A Telegram bot that blends live Euroleague basketball data, hyper‑local weathe
 
 ## 🎬 Demo
 <a id="demo"></a>
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/Amit-Persky/Amit-bot/media-only/media/demo.gif" width="320" alt="Animated demo">
 </p>
@@ -36,6 +37,8 @@ A Telegram bot that blends live Euroleague basketball data, hyper‑local weathe
 ---
 
 ## ✨ Key Features
+<a id="key-features"></a>
+
 - **Euroleague Results** – last/next game or full-season summary for any team  
 - **Weather** – current, hourly, tomorrow, or multi‑day forecasts for any city  
 - **Places of Interest** – cafés, parks, museums via Google Places  
@@ -45,6 +48,8 @@ A Telegram bot that blends live Euroleague basketball data, hyper‑local weathe
 ---
 
 ## 🏗️ Architecture
+<a id="architecture"></a>
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/Amit-Persky/Amit-bot/media-only/media/images/architecture_diagram.png" alt="Architecture overview" width="680">
 </p>
@@ -58,6 +63,8 @@ A Telegram bot that blends live Euroleague basketball data, hyper‑local weathe
 ---
 
 ## ⚡ Quick Start (Local)
+<a id="quick-start-local"></a>
+
 ```bash
 # 1) Clone a lightweight copy (main branch, last commit only)
 git clone --depth 1 --single-branch https://github.com/Amit-Persky/Amit-bot.git
@@ -79,6 +86,8 @@ uvicorn main:app --reload           # http://127.0.0.1:8000/docs
 ---
 
 ## ☁️ Production Deployment (AWS)
+<a id="production-deployment-aws"></a>
+
 The fastest path is **Docker on EC2** (you can later add API Gateway or CloudFront if you want a fully‑managed front door).
 
 ### 1. Launch EC2 instance
@@ -168,6 +177,8 @@ curl "https://api.telegram.org/bot<TELEGRAM_TOKEN>/setWebhook?url=https://api.<Y
 ---
 
 ## 💡 Usage Examples
+<a id="usage-examples"></a>
+
 
 | Type  | Example Query | Result |
 |-------|---------------|--------|
@@ -178,6 +189,8 @@ curl "https://api.telegram.org/bot<TELEGRAM_TOKEN>/setWebhook?url=https://api.<Y
 ---
 
 ## 🔌 API Reference (Swagger)
+<a id="api-reference-swagger"></a>
+
 Once running, open **`/docs`** (e.g. `http://localhost:8000/docs`).
 
 | Endpoint | Description |
@@ -190,6 +203,8 @@ Once running, open **`/docs`** (e.g. `http://localhost:8000/docs`).
 ---
 
 ## 🧪 Running Tests
+<a id="running-tests"></a>
+
 ```bash
 pip install -r requirements.txt
 pytest -q
