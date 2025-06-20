@@ -9,6 +9,8 @@ A Telegram bot that blends live Euroleague basketball data, hyper‑local weathe
 
 [![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)](https://www.python.org/) 
 [![Docker](https://img.shields.io/badge/Docker-ready-blue?logo=docker)](https://docs.docker.com/) 
+[![Stars](https://img.shields.io/github/stars/Amit-Persky/Amit-bot?style=social)](https://github.com/Amit-Persky/Amit-bot/stargazers)	
+[![Issues](https://img.shields.io/github/issues/Amit-Persky/Amit-bot)](https://github.com/Amit-Persky/Amit-bot/issues)	
 [![License](https://img.shields.io/github/license/Amit-Persky/Amit-bot)](#license-author)
 
 ---
@@ -108,8 +110,8 @@ sudo usermod -aG docker ec2-user   # logout/login once
 ### 2. Clone & Build image
 ```bash
 # shallow clone – main branch only, latest commit
-git clone --depth 1 --single-branch https://github.com/<YOUR-GH-USER>/<REPO>.git
-cd <REPO>
+git clone --depth 1 --single-branch https://github.com/Amit-Persky/Amit-bot.git
+cd Amit-bot
 # (remove --depth 1 --single-branch if you need the full history or additional branches)
 
 # copy production config and add real secrets
