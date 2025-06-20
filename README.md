@@ -55,22 +55,21 @@ A Telegram bot that blends live Euroleague basketball data, hyper‑local weathe
 
 ---
 
-## ⚡ Quick Start (Local)
+## ⚡ Quick Start (Local)
 ```bash
 # 1) Clone a lightweight copy (main branch, last commit only)
 git clone --depth 1 --single-branch https://github.com/Amit-Persky/Amit-bot.git
 cd Amit-bot
-> **Note:** the flags keep the clone small by skipping full history and the media branch.
 
-# 2) Create virtual‑env & install deps
+# 2) Create virtual-env & install deps
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# 3) Copy the sample config and fill in your keys
+# 3) Copy the sample config and fill in your keys
 cp config.json config.local.json
 nano config.local.json
 
-# 4) Run
+# 4) Run
 uvicorn main:app --reload           # http://127.0.0.1:8000/docs
 ```
 
