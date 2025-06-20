@@ -9,7 +9,7 @@ A Telegram bot that blends live Euroleague basketball data, hyper‑local weathe
 
 [![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)](https://www.python.org/) 
 [![Docker](https://img.shields.io/badge/Docker-ready-blue?logo=docker)](https://docs.docker.com/) 
-[![License](https://img.shields.io/github/license/Amit-Persky/euroleague-traveler-bot)](#-license--author)
+[![License](https://img.shields.io/github/license/Amit-Persky/Amit-bot)](#-license--author)
 
 ---
 
@@ -19,7 +19,7 @@ A Telegram bot that blends live Euroleague basketball data, hyper‑local weathe
 3. [Architecture](#-architecture)
 4. [Quick Start (Local)](#-quick-start-local)
 5. [Production Deployment (AWS)](#-production-deployment-aws)
-6. [Configuration](#️-configuration)
+6. [Configuration](#configuration)
 7. [Usage Examples](#-usage-examples)
 8. [API Reference](#-api-reference-swagger)
 9. [Testing](#-running-tests)
