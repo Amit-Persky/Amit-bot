@@ -4,7 +4,7 @@
 A Telegram bot that blends live Euroleague basketball data, hyper‑local weather forecasts and Google Places travel tips – with both **text and voice** commands.
 
 <p align="center">
-  <img src="media/images/banner.png" alt="Bot banner" width="420">
+  <img src="https://raw.githubusercontent.com/Amit-Persky/Amit-bot/media-only/media/images/banner.png" alt="Bot banner" width="420">
 </p>
 
 [![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)](https://www.python.org/) 
@@ -29,7 +29,7 @@ A Telegram bot that blends live Euroleague basketball data, hyper‑local weathe
 
 ## 🎬 Demo
 <p align="center">
-  <img src="media/demo.gif" width="320" alt="Animated demo">
+  <img src="https://raw.githubusercontent.com/Amit-Persky/Amit-bot/media-only/media/demo.gif" width="320" alt="Animated demo">
 </p>
 
 ---
@@ -45,7 +45,7 @@ A Telegram bot that blends live Euroleague basketball data, hyper‑local weathe
 
 ## 🏗️ Architecture
 <p align="center">
-  <img src="media/images/architecture_diagram.png" alt="Architecture overview" width="680">
+  <img src="https://raw.githubusercontent.com/Amit-Persky/Amit-bot/media-only/media/images/architecture_diagram.png" alt="Architecture overview" width="680">
 </p>
 
 1. **Telegram** → **FastAPI** (Docker) – handles webhook  
